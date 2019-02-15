@@ -219,29 +219,34 @@
    * @param  {Blob} file blob data received from event.dataTransfer object
    * @return {XMLHttpRequest} request object which sends the file
    */
-  inlineAttachment.prototype.uploadFile = function(file) {
+  inlineAttachment.prototype.uploadFile = function(file, fromClipboard) {
     var me = this,
       formData = new FormData(),
       xhr = new XMLHttpRequest(),
       settings = this.settings,
-      extension = settings.defaultExtension || settings.defualtExtension;
+      extension = settings.defaultExtension || settings.defualtExtension,
+      remoteFilename;
 
     if (typeof settings.setupFormData === 'function') {
       settings.setupFormData(formData, file);
     }
 
-    // Attach the file. If coming from clipboard, add a default filename (only works in Chrome for now)
-    // http://stackoverflow.com/questions/6664967/how-to-give-a-blob-uploaded-as-formdata-a-file-name
-    if (file.name) {
-      var fileNameMatches = file.name.match(/\.(.+)$/);
-      if (fileNameMatches) {
-        extension = fileNameMatches[1];
+    if (fromClipboard) {
+      // Attach the file. If coming from clipboard, add a default filename (only works in Chrome for now)
+      // http://stackoverflow.com/questions/6664967/how-to-give-a-blob-uploaded-as-formdata-a-file-name
+      if (file.name) {
+        var fileNameMatches = file.name.match(/\.(.+)$/);
+        if (fileNameMatches) {
+          extension = fileNameMatches[1];
+        }
       }
-    }
 
-    var remoteFilename = "image-" + Date.now() + "." + extension;
-    if (typeof settings.remoteFilename === 'function') {
-      remoteFilename = settings.remoteFilename(file);
+      remoteFilename = "image-" + Date.now() + "." + extension;
+      if (typeof settings.remoteFilename === 'function') {
+        remoteFilename = settings.remoteFilename(file);
+      }
+    } else {
+      remoteFilename = file.name;
     }
 
     formData.append(settings.uploadFieldName, file, remoteFilename);
@@ -365,7 +370,7 @@
         if (this.isFileAllowed(item)) {
           result = true;
           this.onFileInserted(item.getAsFile());
-          this.uploadFile(item.getAsFile());
+          this.uploadFile(item.getAsFile(), true);
         }
       }
     }
